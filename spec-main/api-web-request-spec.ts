@@ -2,6 +2,7 @@ import { expect } from 'chai';
 import * as http from 'http';
 import * as qs from 'querystring';
 import * as path from 'path';
+import * as url from 'url';
 import * as WebSocket from 'ws';
 import { ipcMain, protocol, session, WebContents, webContents } from 'electron';
 import { AddressInfo } from 'net';
@@ -133,6 +134,18 @@ describe('webRequest module', () => {
       await ajax(defaultURL + 'serverRedirect');
       await ajax(defaultURL + 'serverRedirect');
     });
+
+    it('works with file:// protocol', (done) => {
+      ses.webRequest.onBeforeRequest((details, callback) => {
+        callback({ cancel: true });
+        done();
+      });
+      ajax(url.format({
+        pathname: path.join(fixturesPath, 'blank.html').replace(/\\/g, '/'),
+        protocol: 'file',
+        slashes: true
+      }));
+    });
   });
 
   describe('webRequest.onBeforeSendHeaders', () => {
@@ -191,6 +204,24 @@ describe('webRequest module', () => {
         expect(details.requestHeaders).to.deep.equal(requestHeaders);
       });
       await ajax(defaultURL);
+    });
+
+    it('works with file:// protocol', (done) => {
+      const requestHeaders = {
+        Test: 'header'
+      };
+      ses.webRequest.onBeforeSendHeaders((details, callback) => {
+        callback({ requestHeaders: requestHeaders });
+      });
+      ses.webRequest.onSendHeaders((details) => {
+        expect(details.requestHeaders).to.deep.equal(requestHeaders);
+        done();
+      });
+      ajax(url.format({
+        pathname: path.join(fixturesPath, 'blank.html').replace(/\\/g, '/'),
+        protocol: 'file',
+        slashes: true
+      }));
     });
   });
 
